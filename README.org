@@ -90,12 +90,12 @@ the same name).
 
 The mods included are:
 
-**mod_object_proplists.hrl** : This will make the parser decode
+*mod_object_proplists.hrl* : This will make the parser decode
 objects to property lists. The resulting term is {object,
 Proplist}. Decoding to property lists will allow the user to access
 duplicate objects.
 
-**mod_string_utf8_optimized.hrl** : This string parser reads upto 4
+*mod_string_utf8_optimized.hrl* : This string parser reads upto 4
 bytes per iteration. It is faster against long UTF-8 strings with
 chatacters that consist of 2-4 code units. If the JSON string is
 purely ASCII text this will introduce an insignificant overhead.
