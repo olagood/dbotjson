@@ -46,7 +46,7 @@ dbotjson:get([<<"test">>], J)
 
 %% If we only wanted a specific value we could add the index of the
 %% item in the list:
-dbotjson:get([<<"test">>, 4])  %% This will return {ok, 4}
+dbotjson:get([<<"test">>, 4], J)  %% This will return {ok, 4}
 #+END_SRC
 
 *decode/1*: This function always returns the decoded JSON value. If
