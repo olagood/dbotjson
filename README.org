@@ -1,0 +1,133 @@
+* dbotjson
+
+Parse JSON formatted text conforming to the RFC 8259 standard.
+
+- Written in Erlang. Developed on Erlang/OTP 23.
+- No external dependencies. Just a single Erlang module.
+- Extra batteries included. (Code to modify the default behaviour).
+
+** Notes and Warnings
+
+- The parser is UTF-8 compatible only.
+- The UTF-8 byte order mark is not ignored.
+- *There is no depth limit.*
+- It does not provide useful error messages for invalid input.
+
+** Installing
+
+It's a single .erl file, drop it in your project and you are done!
+
+** API Usage
+
+There are two functions exported by dbotjson: decode/1 and get/2.
+
+#+BEGIN_SRC erlang
+%% Given the following JSON text: {"test": [1, 2, 3, 4, 5]}
+
+%% We can start with the following binary:
+J = <<"{\"test\": [1, 2, 3, 4, 5]}">>,
+
+%% To fully decode the JSON above we call:
+dbotjson:decode(J),
+
+%% This function will return the following erlang term:
+%% #{<<"test">> => [1, 2, 3, 4, 5]}.
+
+%% See below for the exact coversions done.
+
+%% The second function provided is able to extract specific values
+%% from the JSON document without fully decoding it. In fact, decoding
+%% and allocations only happen for the requested value.
+
+%% Let's say we only want to decode the list:
+dbotjson:get([<<"test">>], J)
+
+%% This will return: {ok, [1, 2, 3, 4, 5]}
+
+%% If we only wanted a specific value we could add the index of the
+%% item in the list:
+dbotjson:get([<<"test">>, 4])  %% This will return {ok, 4}
+#+END_SRC
+
+*decode/1*: This function always returns the decoded JSON value. If
+the JSON text given is erroneous it will throw the exception:
+={invalid, Pos}=.  `Pos' is the index of the character that triggered
+the exception.
+
+*get/2*: This one will return ={ok, Term}= on success. It will return
+={error, Pos}= if the requested `Path' was not found. Like decode/2,
+it will throw ={invalid, Pos}= if the JSON text given is invalid (,but
+only if the error is before or during the requested path).
+
+_Check src/dbotjson.erl for more documentation on the API._
+
+** Decoded Terms
+
+The JSON values are converted to Erlang terms as follows:
+- Objects {} -> Maps #{}  (If there are duplicate JSON objects the last one is kept)
+- Arrays  [] -> Lists []
+- Numbers    -> Integers or Floats
+- Strings    -> Binaries
+- Booleans   -> Atoms: true | false
+- Null       -> Atom: null
+
+** get/2 Explained
+
+/This function is based/ on an idea from
+http://verisimilitudes.net and will essentially avoid all unnecessary
+allocations/decoding by skipping the JSON text until the specified
+path is found. This allows for faster and efficient processing of big
+JSON documents and it also has the effect of allowing processing of
+broken/invalid JSON so long as the issue did not occur before the
+desired object.
+
+** Modifying
+
+The `mods' folder contains alternative implementations of various
+parser componenets. To use them replace the functions in dbotjson.erl
+with their respective functions from the mod you want (they will have
+the same name).
+
+The mods included are:
+
+**mod_object_proplists.hrl** : This will make the parser decode
+objects to property lists. The resulting term is {object,
+Proplist}. Decoding to property lists will allow the user to access
+duplicate objects.
+
+**mod_string_utf8_optimized.hrl** : This string parser reads upto 4
+bytes per iteration. It is faster against long UTF-8 strings with
+chatacters that consist of 2-4 code units. If the JSON string is
+purely ASCII text this will introduce an insignificant overhead.
+
+** License
+
+Licensed under the Affero General Public License version 3 (AGPLv3) only.
+[[https://www.gnu.org/graphics/agplv3-with-text-162x68.png]]
+
+** Contributing
+
+Contributions of code are accepted provided that the following
+guidelines are followed:
+
+1. Support for other Unicode encodings must be submitted as a different module.
+2. It is not a unifying interface aiming to package mods and the base
+   parser in one module, but introduces (even insignificant) overhead
+   or code duplication.
+
+The following must be submitted as a mod:
+1. Parsers that decode to a different output
+2. Ignoring the UTF-8 Byte Order Mark
+3. String optimizations that do not prioritize ASCII.
+
+** Notes and decisions
+
+*On ignoring the Byte Order Mark*
+
+The RFC 8259 on section 8.1 specifies that ``Implementations MUST NOT
+add a byte order mark (U+FEFF) to the beginning of
+networked-transmitted JSON text.''. It is pretty clear that any such
+text violates the standard and this parser will refuse to parse it.
+
+In case you do encounter such text you may explicitly parse the BOM
+yourself and pass the remaining text to the parser.
